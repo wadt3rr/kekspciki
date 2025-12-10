@@ -9,7 +9,7 @@ let authMode = 'login'; // 'login' or 'register'
 let resultsUnlocked = false;
 
 // Event date (change this to your event date)
-const eventDate = new Date('2025-12-10T20:30:50').getTime();
+const eventDate = new Date('2025-12-17T18:00:00').getTime();
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
