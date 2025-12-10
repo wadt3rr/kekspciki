@@ -6,4 +6,5 @@ database/*.db-journal
 .DS_Store
 .vscode/
 .idea/
-uploads/videos/
+uploads/
+uploads/**
