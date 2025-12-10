@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Премия Друзей - Главная премия нашего круга</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-container">
+                <div class="logo">Kekspciki СЛАУ</div>
+                <ul class="nav-menu">
+                    <li><a href="#about">О премии</a></li>
+                    <li><a href="#nominations">Номинации</a></li>
+                    <li><a href="#vote">Голосование</a></li>
+                    <li><a href="#results">Результаты</a></li>
+                    <li id="auth-menu-item">
+                        <button class="btn btn-small" id="login-btn" onclick="showAuthModal()">Войти</button>
+                        <span id="user-info" style="display: none;"></span>
+                        <button class="btn btn-small btn-secondary" id="logout-btn" onclick="logout()" style="display: none;">Выйти</button>
+                    </li>
+                </ul>
+                <button class="nav-toggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-subtitle">Kekspciki СЛАУ</span>
+                <span class="hero-main-title">ГЛАВНАЯ ПРЕМИЯ<br>НАШИХ БЫКОВ</span>
+            </h1>
+            <p class="hero-description">Ежегодная премия, на которой собираются главные мастодонты. Выбери лучших среди нас.</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="scrollToSection('vote')">Проголосовать</button>
+                <button class="btn btn-secondary" onclick="scrollToSection('about')">О премии</button>
+            </div>
+        </div>
+        <div class="hero-decoration"></div>
+    </section>
+
+    <!-- Countdown Timer -->
+    <section class="countdown-section">
+        <div class="container">
+            <h2 class="countdown-title">Церемония награждения начнется через:</h2>
+            <div class="countdown-timer" id="countdown">
+                <div class="countdown-item">
+                    <span class="countdown-number" id="days">00</span>
+                    <span class="countdown-label">дней</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-number" id="hours">00</span>
+                    <span class="countdown-label">часов</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-number" id="minutes">00</span>
+                    <span class="countdown-label">минут</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-number" id="seconds">00</span>
+                    <span class="countdown-label">секунд</span>
+                </div>
+            </div>
+            <p class="countdown-date" id="event-date"></p>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <h2 class="section-title">О ПРЕМИИ</h2>
+            <div class="about-content">
+                <div class="about-card">
+                    <h3>Премия Друзей</h3>
+                    <p>Ежегодная премия, на которой собираются настоящие мастодонты. Выбери лучших среди нас.</p>
+                </div>
+                <div class="about-card">
+                    <h3>История</h3>
+                    <p>В этом году мы впервые проводим премию среди быков. Это уникальная возможность отметить лучших из лучших</p>
+                </div>
+                
+            </div>
+        </div>
+    </section>
+
+    <!-- Voting Section -->
+    <section id="vote" class="voting-section">
+        <div class="container">
+            <h2 class="section-title">ГОЛОСОВАНИЕ</h2>
+            <div class="voting-content">
+                <div class="voting-info">
+                    <h3>Твой голос важен!</h3>
+                    <p>Выбери лучших друзей в каждой номинации. Голосование проходит прямо на карточках номинаций выше.</p>
+                    <p style="margin-top: 1rem; color: var(--text-secondary);">Перейди в раздел <a href="#nominations" style="color: var(--primary-color);">Номинации</a> чтобы проголосовать.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nominations Section -->
+    <section id="nominations" class="nominations-section">
+        <div class="container">
+            <h2 class="section-title">НОМИНАЦИИ</h2>
+            <div class="nominations-grid" id="nominations-grid">
+                <!-- Nominations will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    
+
+    <!-- Results Section -->
+    <section id="results" class="results-section">
+        <div class="container">
+            <h2 class="section-title">ИТОГИ ГОЛОСОВАНИЯ</h2>
+            <div class="results-content">
+                <div class="results-controls">
+                    <select id="results-nomination-filter" class="results-filter">
+                        <option value="">Все номинации</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadResults()">Обновить результаты</button>
+                </div>
+                <div id="results-container" class="results-container">
+                    <p class="results-loading">Загрузка результатов...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">Kekspciki СЛАУ</div>
+                <p class="footer-tagline">ПРЕМИЯ, ГДЕ В ВЫБОРЕ ЛУЧШИХ УЧАСТВУЕШЬ ТЫ!</p>
+                <div class="footer-links">
+                    <a href="#about">О премии</a>
+                    <a href="#nominations">Номинации</a>
+                    <a href="#vote">Голосование</a>
+                    <a href="#results">Результаты</a>
+                </div>
+                <p class="footer-copyright">2025 © Kekspciki СЛАУ</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+            <div class="modal-body">
+                <h2 id="auth-modal-title">Авторизация</h2>
+                <div id="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('login')">Вход</button>
+                    <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+                </div>
+                <form id="auth-form" class="auth-form">
+                    <div class="form-group" id="username-group">
+                        <label for="auth-username">Имя пользователя</label>
+                        <input type="text" id="auth-username" name="username" required placeholder="Введи имя пользователя">
+                    </div>
+                    <div class="form-group" id="email-group" style="display: none;">
+                        <label for="auth-email">Email (необязательно)</label>
+                        <input type="email" id="auth-email" name="email" placeholder="email@example.com">
+                    </div>
+                    <div class="form-group" id="display-name-group" style="display: none;">
+                        <label for="auth-display-name">Отображаемое имя (необязательно)</label>
+                        <input type="text" id="auth-display-name" name="display_name" placeholder="Твое имя">
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-password">Пароль</label>
+                        <input type="password" id="auth-password" name="password" required placeholder="Введи пароль">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Войти</button>
+                </form>
+                <div id="auth-error" class="auth-error" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nomination Selection Modal -->
+    <div class="modal nomination-selection-modal" id="nomination-selection-modal">
+        <div class="modal-content nomination-selection-content">
+            <button class="modal-close" onclick="closeNominationModal()">&times;</button>
+            <div class="modal-body nomination-selection-body">
+                <h2 id="nomination-modal-title" class="nomination-modal-title"></h2>
+                <p id="nomination-modal-description" class="nomination-modal-description"></p>
+                
+                <div class="candidates-selection-grid" id="candidates-selection-grid">
+                    <!-- Candidates will be loaded here -->
+                </div>
+                
+                <form id="nomination-vote-form" class="nomination-vote-form-modal" onsubmit="handleNominationVoteFromModal(event)">
+                    <input type="hidden" id="selected-candidate-id" name="candidate_id" required>
+                    <input type="hidden" id="selected-nomination-id" name="nomination_id" required>
+                    <button type="submit" class="btn btn-primary btn-block" id="submit-vote-btn" disabled>
+                        Проголосовать
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Fullscreen Modal -->
+    <div class="modal image-fullscreen-modal" id="image-fullscreen-modal">
+        <button class="modal-close image-fullscreen-close" onclick="closeImageFullscreen()">&times;</button>
+        <div class="image-fullscreen-container">
+            <img id="image-fullscreen-img" src="" alt="" />
+        </div>
+    </div>
+
+    <!-- File Upload Modal -->
+    <div class="modal" id="file-upload-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeFileUploadModal()">&times;</button>
+            <div class="modal-body">
+                <h2 id="file-upload-title">Загрузка файла</h2>
+                <div class="file-upload-container">
+                    <div class="file-upload-area" id="file-upload-area">
+                        <input type="file" id="file-input" accept="" style="display: none;" />
+                        <div class="file-upload-dropzone" id="file-dropzone">
+                            <div class="file-upload-icon">📁</div>
+                            <p class="file-upload-text">Перетащите файл сюда или <span class="file-upload-link">выберите файл</span></p>
+                            <p class="file-upload-hint" id="file-upload-hint"></p>
+                        </div>
+                    </div>
+                    <div class="file-upload-preview" id="file-upload-preview" style="display: none;">
+                        <div class="file-preview-content">
+                            <div class="file-preview-info">
+                                <span id="file-preview-name"></span>
+                                <span id="file-preview-size"></span>
+                            </div>
+                            <button type="button" class="btn btn-small btn-secondary" onclick="clearFileSelection()">Удалить</button>
+                        </div>
+                    </div>
+                    <div class="file-upload-candidate-name" id="file-upload-candidate-name" style="display: none;">
+                        <div class="form-group">
+                            <label for="candidate-name-input">Название *</label>
+                            <input type="text" id="candidate-name-input" class="form-control" placeholder="Введите название" required />
+                        </div>
+                    </div>
+                    <div class="file-upload-progress" id="file-upload-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <p class="progress-text">Загрузка...</p>
+                    </div>
+                    <div class="file-upload-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeFileUploadModal()">Отмена</button>
+                        <button type="button" class="btn btn-primary" id="upload-submit-btn" onclick="uploadFile()" disabled>Загрузить</button>
+                    </div>
+                    <div id="file-upload-error" class="file-upload-error" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-body" id="modal-body">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
