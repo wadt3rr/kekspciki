@@ -742,7 +742,7 @@ function openNominationModal(nominationId) {
     const allowsPhotoUpload = nameLower.includes('завоз') && nameLower.includes('год');
     
     // Video upload: only for "Клип года" and "Рейдж года"
-    const allowsVideoUpload = (nameLower.includes('клип') || nameLower.includes('рейдж')) && nameLower.includes('год');
+    const allowsVideoUpload = (nameLower.includes('клип') || nameLower.includes('рейдж') || nameLower.includes('хайлайт')) && nameLower.includes('год');
     
     gridEl.innerHTML = nomCandidates.map(candidate => {
         const isSelected = userVote && userVote.candidate_id === candidate.id;
