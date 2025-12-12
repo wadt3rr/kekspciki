@@ -1783,6 +1783,139 @@ async function addNomination(name, description) {
     }
 }
 
+
+async function showAddCandidateForm() {
+    try {
+        const nominations = await apiRequest('/nominations');
+
+        if (!nominations || nominations.length === 0) {
+            showModal('Ошибка', 'Нет доступных номинаций для добавления кандидата.');
+            return;
+        }
+
+        // Сформируем список номинаций для выбора
+        const nomListText = nominations.map(n => `${n.id}: ${n.name}`).join('\n');
+        const nomPrompt = `Выберите номинацию (введите ID) из списка:\n\n${nomListText}`;
+        const nomIdRaw = prompt(nomPrompt, nominations[0].id);
+        if (nomIdRaw === null) return;
+        const nominationId = parseInt(nomIdRaw, 10);
+        if (Number.isNaN(nominationId) || !nominations.find(n => n.id === nominationId)) {
+            alert('Неверный ID номинации.');
+            return;
+        }
+
+        const name = prompt('Имя/название кандидата:');
+        if (name === null) return;
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            alert('Имя кандидата не может быть пустым.');
+            return;
+        }
+
+        // Получим саму номинацию для определения, нужно ли запрашивать фото/видео
+        const nomination = nominations.find(n => n.id === nominationId);
+
+        let image_url = null;
+        let video_url = null;
+
+        // Для номинаций, содержащих в названии подсказки про фото/видео — попросим ссылки
+        const nomLower = (nomination.name || '').toLowerCase();
+        if (nomLower.includes('фото') || nomLower.includes('завоз') || nomLower.includes('портрет') || nomLower.includes('фото:')) {
+            const img = prompt('URL фото (оставьте пустым если не нужно):', '');
+            if (img !== null) image_url = img.trim() || null;
+        } else {
+            // даём возможность добавить фото в любом случае
+            const addImg = confirm('Добавить фото для кандидата?');
+            if (addImg) {
+                const img = prompt('URL фото (оставьте пустым чтобы пропустить):', '');
+                if (img !== null) image_url = img.trim() || null;
+            }
+        }
+
+        if (nomLower.includes('видео') || nomLower.includes('клип') || nomLower.includes('видео:') || nomLower.includes('рейдж')) {
+            const vid = prompt('URL видео (оставьте пустым если не нужно):', '');
+            if (vid !== null) video_url = vid.trim() || null;
+        } else {
+            const addVid = confirm('Добавить ссылку на видео (если есть)?');
+            if (addVid) {
+                const vid = prompt('URL видео (оставьте пустым чтобы пропустить):', '');
+                if (vid !== null) video_url = vid.trim() || null;
+            }
+        }
+
+        // Собираем payload и отправляем
+        const payload = {
+            name: trimmedName,
+            nomination_id: nominationId
+        };
+        if (image_url !== null) payload.image_url = image_url;
+        if (video_url !== null) payload.video_url = video_url;
+
+        await addCandidate(payload);
+    } catch (err) {
+        console.error('showAddCandidateForm error:', err);
+        showModal('Ошибка', 'Не удалось открыть форму добавления кандидата.');
+    }
+}
+
+/**
+ * Добавить кандидата через API
+ * @param {{name: string, nomination_id: number, image_url?: string|null, video_url?: string|null}} data
+ */
+async function addCandidate(data) {
+    try {
+        await apiRequest('/candidates', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+
+        showModal('Успешно', 'Кандидат добавлен!');
+        await loadAdminCandidates();
+        await renderNominations(); // если на главной странице есть зависимости
+    } catch (error) {
+        console.error('addCandidate error:', error);
+        showModal('Ошибка', error.message || 'Не удалось добавить кандидата');
+    }
+}
+
+// Вставка/подключение кнопки "Добавить кандидата" в loadAdminCandidates (если кнопки нет)
+const originalLoadAdminCandidates = loadAdminCandidates;
+loadAdminCandidates = async function() {
+    // перед основным выполнением попробуем добавить кнопку если её нет
+    try {
+        const listEl = document.getElementById('admin-candidates-list');
+        if (listEl) {
+            // ищем существующую кнопку по id
+            if (!document.getElementById('admin-add-candidate-btn')) {
+                // создаём контейнер под заголовок в списке
+                const header = document.createElement('div');
+                header.className = 'admin-candidates-header';
+                header.style.display = 'flex';
+                header.style.justifyContent = 'flex-end';
+                header.style.marginBottom = '0.5rem';
+
+                const btn = document.createElement('button');
+                btn.id = 'admin-add-candidate-btn';
+                btn.className = 'btn btn-small btn-primary';
+                btn.textContent = 'Добавить кандидата';
+                btn.onclick = showAddCandidateForm;
+
+                header.appendChild(btn);
+                listEl.parentNode && listEl.parentNode.insertBefore(header, listEl);
+            } else {
+                // если кнопка есть — гарантируем что её onclick установлен
+                document.getElementById('admin-add-candidate-btn').onclick = showAddCandidateForm;
+            }
+        }
+    } catch (e) {
+        // не критично — продолжим
+        console.warn('Не получилось добавить кнопку "Добавить кандидата":', e);
+    }
+
+    // Вызов оригинальной логики загрузки кандидатов
+    return originalLoadAdminCandidates.apply(this, arguments);
+};
+
 async function editNomination(id) {
     try {
         const nomination = await apiRequest(`/nominations/${id}`);
