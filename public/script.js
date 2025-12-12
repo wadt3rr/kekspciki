@@ -728,7 +728,7 @@ function openNominationModal(nominationId) {
     const isVideoNomination = nameLower.includes('клип') || 
                                nameLower.includes('видео') ||
                                nameLower.includes('clip') ||
-                               nameLower.includes('рейдж');
+                               nameLower.includes('рейдж') ||
                                nameLower.includes('хайлайт');
     
     // Check if this nomination is for photos/images (мем года, завоз года)
