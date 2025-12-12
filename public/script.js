@@ -729,6 +729,7 @@ function openNominationModal(nominationId) {
                                nameLower.includes('видео') ||
                                nameLower.includes('clip') ||
                                nameLower.includes('рейдж');
+                               nameLower.includes('хайлайт');
     
     // Check if this nomination is for photos/images (мем года, завоз года)
     const isPhotoNomination = nameLower.includes('мем') || 
