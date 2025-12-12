@@ -9,7 +9,7 @@ let authMode = 'login'; // 'login' or 'register'
 let resultsUnlocked = false;
 
 // Event date (change this to your event date)
-const eventDate = new Date('2025-12-17T18:00:00').getTime();
+const eventDate = new Date('2025-12-19T18:00:00').getTime();
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -87,6 +87,7 @@ async function checkAuthStatus() {
 function updateAuthUI(isAuthenticated, user = null) {
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const adminBtn = document.getElementById('admin-btn');
     const userInfo = document.getElementById('user-info');
     const votingForm = document.getElementById('voting-form');
     const authRequiredMessage = document.getElementById('auth-required-message');
@@ -98,11 +99,16 @@ function updateAuthUI(isAuthenticated, user = null) {
             userInfo.style.display = 'inline';
             userInfo.textContent = `Привет, ${user.display_name || user.username}!`;
         }
+        // Показать кнопку админа только если пользователь - админ
+        if (adminBtn) {
+            adminBtn.style.display = (user.is_admin === 1 || user.is_admin === true) ? 'inline-block' : 'none';
+        }
         if (votingForm) votingForm.style.display = 'block';
         if (authRequiredMessage) authRequiredMessage.style.display = 'none';
     } else {
         if (loginBtn) loginBtn.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (adminBtn) adminBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'none';
         if (votingForm) votingForm.style.display = 'none';
         if (authRequiredMessage) authRequiredMessage.style.display = 'block';
@@ -1586,5 +1592,328 @@ window.addEventListener('scroll', function() {
     }
 
     lastScroll = currentScroll;
+});
+
+// ========== ADMIN PANEL FUNCTIONS ==========
+
+let currentAdminTab = 'nominations';
+
+async function showAdminPanel() {
+    const modal = document.getElementById('admin-panel-modal');
+    if (!modal) return;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    await loadAdminNominations();
+    await loadAdminCandidates();
+}
+
+function closeAdminPanel() {
+    const modal = document.getElementById('admin-panel-modal');
+    if (!modal) return;
+    
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function switchAdminTab(tab) {
+    currentAdminTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.admin-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`admin-${tab}-tab`).classList.add('active');
+    
+    // Load data if needed
+    if (tab === 'nominations') {
+        loadAdminNominations();
+    } else if (tab === 'candidates') {
+        loadAdminCandidates();
+    }
+}
+
+async function loadAdminNominations() {
+    try {
+        // Get all nominations (including inactive) - API returns only active by default
+        // We'll fetch each nomination individually to get all data
+        const activeNominations = await apiRequest('/nominations');
+        
+        // Try to get all nominations with admin access
+        let allNominations = activeNominations;
+        try {
+            // Fetch nominations one by one to get inactive ones
+            const maxId = Math.max(...activeNominations.map(n => n.id), 0);
+            const fetchedNominations = [];
+            
+            for (let i = 1; i <= maxId + 5; i++) {
+                try {
+                    const nom = await apiRequest(`/nominations/${i}`);
+                    if (nom) fetchedNominations.push(nom);
+                } catch (e) {
+                    // Skip if not found
+                }
+            }
+            
+            if (fetchedNominations.length > 0) {
+                allNominations = fetchedNominations;
+            }
+        } catch (e) {
+            // Fallback to active nominations only
+        }
+        
+        const listEl = document.getElementById('admin-nominations-list');
+        if (!listEl) return;
+        
+        if (!allNominations || allNominations.length === 0) {
+            listEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Номинаций пока нет</p>';
+            return;
+        }
+        
+        listEl.innerHTML = allNominations.map(nom => `
+            <div class="admin-item" data-id="${nom.id}">
+                <div class="admin-item-content">
+                    <div>
+                        <h4>${nom.name} ${nom.is_active === 0 ? '<span style="color: #ff6b6b;">(неактивна)</span>' : ''}</h4>
+                        ${nom.description ? `<p style="color: var(--text-secondary); margin-top: 0.5rem;">${nom.description}</p>` : ''}
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="btn btn-small btn-primary" onclick="editNomination(${nom.id})">Редактировать</button>
+                        <button class="btn btn-small btn-secondary" onclick="deleteNomination(${nom.id})">${nom.is_active === 0 ? 'Активировать' : 'Деактивировать'}</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Load nominations error:', error);
+        showModal('Ошибка', 'Не удалось загрузить номинации');
+    }
+}
+
+async function loadAdminCandidates() {
+    try {
+        const filterId = document.getElementById('admin-nomination-filter')?.value || '';
+        
+        // Load nominations for filter
+        const nominations = await apiRequest('/nominations');
+        const filterSelect = document.getElementById('admin-nomination-filter');
+        if (filterSelect && filterSelect.children.length === 1) {
+            nominations.forEach(nom => {
+                const option = document.createElement('option');
+                option.value = nom.id;
+                option.textContent = nom.name;
+                filterSelect.appendChild(option);
+            });
+            if (filterId) filterSelect.value = filterId;
+        }
+        
+        let candidates;
+        if (filterId) {
+            candidates = await apiRequest(`/candidates?nomination_id=${filterId}`);
+        } else {
+            // Get all candidates
+            const allCandidates = [];
+            for (const nom of nominations) {
+                const nomCandidates = await apiRequest(`/candidates?nomination_id=${nom.id}`);
+                allCandidates.push(...nomCandidates.map(c => ({...c, nomination_name: nom.name})));
+            }
+            candidates = allCandidates;
+        }
+        
+        const listEl = document.getElementById('admin-candidates-list');
+        if (!listEl) return;
+        
+        if (!candidates || candidates.length === 0) {
+            listEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Кандидатов нет</p>';
+            return;
+        }
+        
+        listEl.innerHTML = candidates.map(cand => `
+            <div class="admin-item" data-id="${cand.id}">
+                <div class="admin-item-content">
+                    <div>
+                        <h4>${cand.name}</h4>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                            Номинация: ${cand.nomination_name || 'Неизвестно'}<br>
+                            ${cand.image_url ? `📷 Фото: ${cand.image_url}` : ''}
+                            ${cand.video_url ? `🎬 Видео: ${cand.video_url}` : ''}
+                        </p>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="btn btn-small btn-primary" onclick="editCandidate(${cand.id})">Редактировать</button>
+                        <button class="btn btn-small btn-secondary" onclick="deleteCandidate(${cand.id})">Удалить</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Load candidates error:', error);
+        showModal('Ошибка', 'Не удалось загрузить кандидатов');
+    }
+}
+
+function showAddNominationForm() {
+    const name = prompt('Введите название номинации:');
+    if (!name || !name.trim()) return;
+    
+    const description = prompt('Введите описание (можно оставить пустым):') || '';
+    
+    addNomination(name.trim(), description.trim());
+}
+
+async function addNomination(name, description) {
+    try {
+        await apiRequest('/nominations', {
+            method: 'POST',
+            body: JSON.stringify({ name, description })
+        });
+        
+        showModal('Успешно', 'Номинация добавлена!');
+        await loadAdminNominations();
+        await renderNominations(); // Refresh main page
+    } catch (error) {
+        showModal('Ошибка', error.message || 'Не удалось добавить номинацию');
+    }
+}
+
+async function editNomination(id) {
+    try {
+        const nomination = await apiRequest(`/nominations/${id}`);
+        
+        const newName = prompt('Название:', nomination.name);
+        if (newName === null) return;
+        
+        const newDesc = prompt('Описание:', nomination.description || '');
+        if (newDesc === null) return;
+        
+        const isActive = nomination.is_active !== 0;
+        const newActive = confirm(`Номинация ${isActive ? 'активна' : 'неактивна'}. Изменить статус?`);
+        
+        await apiRequest(`/nominations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                name: newName.trim(),
+                description: newDesc.trim(),
+                is_active: newActive ? !isActive : isActive
+            })
+        });
+        
+        showModal('Успешно', 'Номинация обновлена!');
+        await loadAdminNominations();
+        await renderNominations();
+    } catch (error) {
+        showModal('Ошибка', error.message || 'Не удалось обновить номинацию');
+    }
+}
+
+async function deleteNomination(id) {
+    try {
+        const nomination = await apiRequest(`/nominations/${id}`);
+        const confirmText = nomination.is_active === 0 
+            ? 'Активировать номинацию?' 
+            : 'Деактивировать номинацию? Кандидаты и голоса сохранятся.';
+        
+        if (!confirm(confirmText)) return;
+        
+        await apiRequest(`/nominations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ is_active: nomination.is_active === 0 ? 1 : 0 })
+        });
+        
+        showModal('Успешно', 'Статус номинации изменен!');
+        await loadAdminNominations();
+        await renderNominations();
+    } catch (error) {
+        showModal('Ошибка', error.message || 'Не удалось изменить статус номинации');
+    }
+}
+
+async function editCandidate(id) {
+    try {
+        const candidate = await apiRequest(`/candidates/${id}`);
+        const nominations = await apiRequest('/nominations');
+        // Try to get nomination even if inactive
+        let nomination = nominations.find(n => n.id === candidate.nomination_id);
+        if (!nomination) {
+            try {
+                nomination = await apiRequest(`/nominations/${candidate.nomination_id}`);
+            } catch (e) {
+                // Nomination not found
+            }
+        }
+        
+        const newName = prompt('Название кандидата:', candidate.name);
+        if (newName === null || !newName.trim()) return;
+        
+        const updateData = { name: newName.trim() };
+        
+        // Handle image URL if nomination supports images
+        if (nomination?.name?.toLowerCase().includes('завоз')) {
+            const changeImage = confirm(`Текущее фото: ${candidate.image_url || 'нет'}\n\nИзменить фото?`);
+            if (changeImage) {
+                const newImageUrl = prompt('URL фото (оставьте пустым чтобы удалить):', candidate.image_url || '');
+                if (newImageUrl !== null) {
+                    updateData.image_url = newImageUrl.trim() || null;
+                }
+            }
+        }
+        
+        // Handle video URL if nomination supports videos
+        if (nomination?.name?.toLowerCase().includes('клип') || nomination?.name?.toLowerCase().includes('рейдж')) {
+            const changeVideo = confirm(`Текущее видео: ${candidate.video_url || 'нет'}\n\nИзменить видео?`);
+            if (changeVideo) {
+                const newVideoUrl = prompt('URL видео (оставьте пустым чтобы удалить):', candidate.video_url || '');
+                if (newVideoUrl !== null) {
+                    updateData.video_url = newVideoUrl.trim() || null;
+                }
+            }
+        }
+        
+        await apiRequest(`/candidates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+        
+        showModal('Успешно', 'Кандидат обновлен!');
+        await loadAdminCandidates();
+        await renderNominations();
+    } catch (error) {
+        showModal('Ошибка', error.message || 'Не удалось обновить кандидата');
+    }
+}
+
+async function deleteCandidate(id) {
+    if (!confirm('Удалить кандидата? Это действие нельзя отменить. Голоса за этого кандидата будут удалены.')) {
+        return;
+    }
+    
+    try {
+        await apiRequest(`/candidates/${id}`, {
+            method: 'DELETE'
+        });
+        
+        showModal('Успешно', 'Кандидат удален!');
+        await loadAdminCandidates();
+        await renderNominations();
+    } catch (error) {
+        showModal('Ошибка', error.message || 'Не удалось удалить кандидата');
+    }
+}
+
+// Close admin panel on Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const adminModal = document.getElementById('admin-panel-modal');
+        if (adminModal && adminModal.classList.contains('active')) {
+            closeAdminPanel();
+        }
+    }
 });
 

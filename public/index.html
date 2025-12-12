@@ -23,6 +23,7 @@
                     <li id="auth-menu-item">
                         <button class="btn btn-small" id="login-btn" onclick="showAuthModal()">Войти</button>
                         <span id="user-info" style="display: none;"></span>
+                        <button class="btn btn-small" id="admin-btn" onclick="showAdminPanel()" style="display: none; background: var(--gradient-2);">Админ</button>
                         <button class="btn btn-small btn-secondary" id="logout-btn" onclick="logout()" style="display: none;">Выйти</button>
                     </li>
                 </ul>
@@ -264,6 +265,47 @@
                         <button type="button" class="btn btn-primary" id="upload-submit-btn" onclick="uploadFile()" disabled>Загрузить</button>
                     </div>
                     <div id="file-upload-error" class="file-upload-error" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div class="modal" id="admin-panel-modal">
+        <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+            <button class="modal-close" onclick="closeAdminPanel()">&times;</button>
+            <div class="modal-body">
+                <h2 style="margin-bottom: 2rem;">🔧 Админ-панель</h2>
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="switchAdminTab('nominations')">Номинации</button>
+                    <button class="admin-tab" onclick="switchAdminTab('candidates')">Кандидаты</button>
+                </div>
+                
+                <!-- Nominations Tab -->
+                <div id="admin-nominations-tab" class="admin-tab-content active">
+                    <div class="admin-section-header">
+                        <h3>Управление номинациями</h3>
+                        <button class="btn btn-primary btn-small" onclick="showAddNominationForm()">+ Добавить</button>
+                    </div>
+                    <div id="admin-nominations-list" class="admin-list">
+                        <!-- Nominations will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Candidates Tab -->
+                <div id="admin-candidates-tab" class="admin-tab-content">
+                    <div class="admin-section-header">
+                        <h3>Управление кандидатами</h3>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="admin-nomination-filter">Фильтр по номинации:</label>
+                        <select id="admin-nomination-filter" class="form-control" onchange="loadAdminCandidates()">
+                            <option value="">Все номинации</option>
+                        </select>
+                    </div>
+                    <div id="admin-candidates-list" class="admin-list">
+                        <!-- Candidates will be loaded here -->
+                    </div>
                 </div>
             </div>
         </div>
